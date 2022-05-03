@@ -1,10 +1,6 @@
-//
-//  main.c
-
 #include <stdio.h>
 #include "mazeEnv.h"
 #include "functions.c"
-#include "functions.h"
 
 void alloc_maze(void){
      maze = malloc(rows * sizeof(char*));
@@ -318,8 +314,8 @@ void initaliseVariables(void){
     // Declare and initalise parameters
     // We shall set their values arbitarily.
     double alpha = 0.1; // learning rate
-    double gamma = 0.2; // discount factor
-    double epsilon = 0.95; // parameter to determine exploitation/exploration
+    double gamma = 0.7; // discount factor
+    double epsilon = 0.9; // parameter to determine exploitation/exploration
     double score = 0; // score
 
     // [Step 1.3]
@@ -329,13 +325,15 @@ void initaliseVariables(void){
     
     // [Step 2]
     // Loop
-    for (int b=0;b<100;b++){
+    for (int b=0;b<30;b++){
+
         maze_reset();
         maze_make("maze.txt");
         //maze_render();
         rowCounter=0;
         //while(maze[state_row][state_col]!='g')
         while(maze[state_row][state_col]!='g'){
+
 
              //indicate current location
             maze[state_row][state_col] = 'x';
@@ -350,7 +348,7 @@ void initaliseVariables(void){
             int randomNumber = rand() % 1000;
             //printf("Rolled: %d\n",randomNumber);
 
-            if(randomNumber < 1000*epsilon){
+            if(randomNumber < 1000*epsilon*pow(0.7,b)){
             // Exploration
                 //printf("Exploring!\n");
 
@@ -374,27 +372,27 @@ void initaliseVariables(void){
             int state_col_old = state_col;
                 
             // Update state
-            printf("Before update -- Row: %d Col: %d \n",state_row,state_col);
+            //printf("Before update -- Row: %d Col: %d \n",state_row,state_col);
             state_row = rowStateUpdater(state_row,action,1);
             state_col = colStateUpdater(state_col,action,1);
-            printf("After update -- Row: %d Col: %d \n",state_row,state_col);
+            //printf("After update -- Row: %d Col: %d \n",state_row,state_col);
 
             // Debug - quality update
-            printf("Quality of (%d,%d), Action %d -> %.2f\n",state_row_old,state_col_old,action,quality[state_row_old][state_col_old][action]);
+            //printf("Quality of (%d,%d), Action %d -> %.2f\n",state_row_old,state_col_old,action,quality[state_row_old][state_col_old][action]);
             // Update quality value and score
             quality[state_row_old][state_col_old][action] = quality[state_row_old][state_col_old][action] + alpha * (rewardFunction(maze[state_row][state_col]) + gamma * maxQuality(state_row,state_col,quality) - quality[state_row_old][state_col_old][action]);
             // Debug - quality update
-            printf("Quality of (%d,%d), Action %d -> %.2f\n",state_row_old,state_col_old,action,quality[state_row_old][state_col_old][action]);
+            //printf("Quality of (%d,%d), Action %d -> %.2f\n",state_row_old,state_col_old,action,quality[state_row_old][state_col_old][action]);
 
             switch(maze[state_row][state_col]){
 
                 case 'g':
-                    printf("Goal!\n");
+                    //printf("Goal!\n");
                     break;
                     
                 // If it encounters a wall
                 case '+':
-                    printf("Wall!\n");
+                    //printf("Wall!\n");
 
                     // Revert to original position
                     state_row = rowStateUpdater(state_row,action,-1);
@@ -402,49 +400,49 @@ void initaliseVariables(void){
                     break;
 
                 case '.':
-                    printf("Visited\n");
+                    //printf("Visited\n");
                     break;
                     
                 // If it encounters a valid space (blank space)
                 default:
-                    printf("Valid space\n");
+                    //printf("Valid space\n");
                     break;
 
             } // end of switch
 
             // indicate visited
             maze[state_row_old][state_col_old] = '.';
-            maze_render();
+            //maze_render();
 
 
-            printf("\n");
+            //printf("\n");
 
             // Print maze
             //maze_render();
             rowCounter++;
 
         } // end of for loop
-        //printf("Reached goal in %d loops\n",rowCounter);
+        printf("Reached goal in %d loops\n",rowCounter);
 
 
     } // end of game loop
    
 
     // debug print
-    for(int i=6; i<rows; i++){
-        for(int j=0; j< cols; j++){
-            for(int k=0;k<4;k++){
-                if(quality[i][j][k]!=0){
-                    printf("Quality (%d,%d) Action %d, Value: %.9f\n", i, j,k,quality[i][j][k]);
+    // for(int i=6; i<rows; i++){
+    //     for(int j=0; j< cols; j++){
+    //         for(int k=0;k<4;k++){
+    //             if(quality[i][j][k]!=0){
+    //                 printf("Quality (%d,%d) Action %d, Value: %.9f\n", i, j,k,quality[i][j][k]);
 
-                }
-            }
-        }
-    }
+    //             }
+    //         }
+    //     }
+    // }
 
-    maze_reset();
-    maze_make("maze.txt");
-    for (int q=0;q<50;q++){
+    // maze_reset();
+    // maze_make("maze.txt");
+    for (int q=0;q<70;q++){
 
 
         int action;
