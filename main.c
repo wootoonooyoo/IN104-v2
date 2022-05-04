@@ -2,6 +2,13 @@
 #include "mazeEnv.h"
 #include "functions.c"
 
+//Additional for boltzmann policy
+#include <math.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+
+
 void alloc_maze(void){
      maze = malloc(rows * sizeof(char*));
 
@@ -98,22 +105,14 @@ We will arbitarily set both values with a value between 0 and 1 (exclusive of bo
 
 >> Reward function
 We need to design the reward function such that it reaches the destination "g" with the shortest path.
- 
-[Action]                     % [Penalty]
-Taking 1 step                % -0.04
-Moving into a wall           % -1
-Moving into a visited square % -0.2 (not coded)
-Moving back into s           % -0.5
-Finding g                    % +1000
+See Reward function below
  
 >> Timeout threshold
 The cumulative score of the bot should not exceed a threshold value.
 When it falls below the threshold value, timeout.
 The value will be set arbitarily later.
  
-*/
-
-// Our code from here
+*/ // Our code from here
 
 int RNG(int largestValue){
     int k = rand() % (largestValue+1);
@@ -174,12 +173,12 @@ double rewardFunction(char block){
         
         // Moving into wall or boundary
         case '+':
-            reward = -1.5;
+            reward = -300;
             break;
         
         // Moving into visited square
         case '.':
-            reward = -0.25;
+            reward = -50;
             break;
             
         // Finding goal
@@ -221,7 +220,6 @@ void actionToWord(int action){
             printf("Right\n");
             break;
     }
-
 
 }
 
@@ -289,6 +287,88 @@ int bestActionFunction(int row, int col, double quality[][cols][4]){
 
 }
 
+// For boltzmann policy
+
+//calculate boltzmann quality
+double boltzmannQuality(double quality,double temperature){
+    return exp(quality/temperature);
+}
+
+double boltzmannWeights(int row,int col,double quality[][cols][4], double temperature){
+
+    //Calculate total
+    double sum=0;
+    for (int i=0;i<4;i++){
+        sum += boltzmannQuality(quality[row][col][i],temperature);
+    }
+    return sum;
+
+}
+
+//calculate boltzmann probability for each action
+double boltzmannProba(int row, int col,double quality[][cols][4],double temperature,int action){
+
+    //Calculate specific action probability
+    double individualWeight = boltzmannQuality(quality[row][col][action],temperature);
+
+    //Calculate total weight
+    double sum = boltzmannWeights(row,col,quality,temperature);
+
+    return individualWeight/sum;
+}
+
+// Robert Jenkins' 96 bit Mix Function
+unsigned long mix(unsigned long a, unsigned long b, unsigned long c)
+{
+    a=a-b;  a=a-c;  a=a^(c >> 13);
+    b=b-c;  b=b-a;  b=b^(a << 8);
+    c=c-a;  c=c-b;  c=c^(b >> 13);
+    a=a-b;  a=a-c;  a=a^(c >> 12);
+    b=b-c;  b=b-a;  b=b^(a << 16);
+    c=c-a;  c=c-b;  c=c^(b >> 5);
+    a=a-b;  a=a-c;  a=a^(c >> 3);
+    b=b-c;  b=b-a;  b=b^(a << 10);
+    c=c-a;  c=c-b;  c=c^(b >> 15);
+    return c;
+}
+
+//Choose boltzmann action from weighted probability
+int boltzmannAction(int row, int col, double quality[][cols][4], double temperature){
+
+    //seed
+    unsigned long seed = mix(clock(), time(NULL), getpid());
+
+    //initalise rng
+    srand(seed);
+
+    //Set bounds
+    double min = 0.0;
+    double max = boltzmannWeights(row,col,quality, temperature);
+
+    //Generate random number
+    double range = (max - min); 
+    double div = RAND_MAX / range;
+    double randomNo = min + (rand() / div);
+    //printf("max is = %f\n",max);
+    //printf("random number = %f\n",randomNo);
+
+    //Debug print - probability for each action
+    // for(int i=0;i<4;i++){
+    //     printf("action %d, value = %f\n",i,boltzmannProba(row,col,quality,temperature,i));
+    // }
+    
+    //Choose action
+    double weightCheck = max;
+    for (int i=3;i>=0;i--){
+
+        weightCheck -= boltzmannQuality(quality[row][col][i],temperature);
+        if(randomNo >= weightCheck){
+            //printf("Chosen action is = %d\n",i);
+            return i;
+        }
+    }
+} 
+
 void initaliseVariables(void){
     
     // [Step 1.1]
@@ -311,101 +391,78 @@ void initaliseVariables(void){
     }
 
     // [Step 1.2]
-    // Declare and initalise parameters
-    // We shall set their values arbitarily.
+    // Declare and initalise parameters - We shall set their values arbitarily.
     double alpha = 0.1; // learning rate
     double gamma = 0.7; // discount factor
-    double epsilon = 0.9; // parameter to determine exploitation/exploration
-    double score = 0; // score
+    // double epsilon = 0.9; // parameter to determine exploitation/exploration
+    double temperature = 400;
 
-    // [Step 1.3]
-    // Define reward function
-    // See above this block of comments
+    // Debug purposes
     int rowCounter = 0;
     
     // [Step 2]
     // Loop
-    for (int b=0;b<30;b++){
+    for (int b=0;b<15;b++){
 
+        temperature = temperature * 0.7;
+        //printf("temp = %f\n",temperature);
         maze_reset();
         maze_make("maze.txt");
         //maze_render();
         rowCounter=0;
-        //while(maze[state_row][state_col]!='g')
         while(maze[state_row][state_col]!='g'){
 
-
-             //indicate current location
+            // Indicate current location
             maze[state_row][state_col] = 'x';
 
-            // Debug purposes
-            //printf("Loop number: %d\n",a);
-
             // BestAction variable
-            int action;
+            int action = boltzmannAction(state_row,state_col,quality,temperature);
 
-            // Determine epsilon or greedy here by rolling a random number;
-            int randomNumber = rand() % 1000;
-            //printf("Rolled: %d\n",randomNumber);
+            //printf("chosen action is %d\n",action);
 
-            if(randomNumber < 1000*epsilon*pow(0.7,b)){
-            // Exploration
-                //printf("Exploring!\n");
+            // // Determine epsilon or greedy here by rolling a random number;
+            // int randomNumber = rand() % 1000;
 
-                // Generate a random number between 0-3
-                action = RNG(3);
+            // if(randomNumber < 1000*epsilon*pow(0.7,b)){
+            // // Exploration
+            //     // Generate a random number between 0-3
+            //     action = RNG(3);
 
-            } else {
-            // Exploitation
-                //printf("Exploiting\n");
+            // } else {
+            // // Exploitation
+            //     // Find the action with the highest reward
+            //     action = bestActionFunction(state_row,state_col,quality);
 
-                // Find the action with the highest reward
-                action = bestActionFunction(state_row,state_col,quality);
-
-            } // end of epsilon-greedy
-
-            // Debug
-            //actionToWord(action);
+            // } // end of epsilon-greedy
 
             // Define 2 variables as placeholders for the inital coordinates
             int state_row_old = state_row;
             int state_col_old = state_col;
                 
             // Update state
-            //printf("Before update -- Row: %d Col: %d \n",state_row,state_col);
             state_row = rowStateUpdater(state_row,action,1);
             state_col = colStateUpdater(state_col,action,1);
-            //printf("After update -- Row: %d Col: %d \n",state_row,state_col);
 
-            // Debug - quality update
-            //printf("Quality of (%d,%d), Action %d -> %.2f\n",state_row_old,state_col_old,action,quality[state_row_old][state_col_old][action]);
             // Update quality value and score
             quality[state_row_old][state_col_old][action] = quality[state_row_old][state_col_old][action] + alpha * (rewardFunction(maze[state_row][state_col]) + gamma * maxQuality(state_row,state_col,quality) - quality[state_row_old][state_col_old][action]);
-            // Debug - quality update
-            //printf("Quality of (%d,%d), Action %d -> %.2f\n",state_row_old,state_col_old,action,quality[state_row_old][state_col_old][action]);
-
+            
             switch(maze[state_row][state_col]){
 
                 case 'g':
-                    //printf("Goal!\n");
                     break;
                     
                 // If it encounters a wall
                 case '+':
-                    //printf("Wall!\n");
-
                     // Revert to original position
                     state_row = rowStateUpdater(state_row,action,-1);
                     state_col = colStateUpdater(state_col,action,-1);
                     break;
 
                 case '.':
-                    //printf("Visited\n");
                     break;
                     
                 // If it encounters a valid space (blank space)
                 default:
-                    //printf("Valid space\n");
                     break;
 
             } // end of switch
@@ -413,22 +470,14 @@ void initaliseVariables(void){
             // indicate visited
             maze[state_row_old][state_col_old] = '.';
             //maze_render();
-
-
-            //printf("\n");
-
-            // Print maze
-            //maze_render();
             rowCounter++;
 
         } // end of for loop
-        printf("Reached goal in %d loops\n",rowCounter);
-
+        printf("Loop %d - goal in %d loops\n",b,rowCounter);
 
     } // end of game loop
    
-
-    // debug print
+    // debug print to check quality table
     // for(int i=6; i<rows; i++){
     //     for(int j=0; j< cols; j++){
     //         for(int k=0;k<4;k++){
@@ -440,88 +489,21 @@ void initaliseVariables(void){
     //     }
     // }
 
-    // maze_reset();
-    // maze_make("maze.txt");
-    for (int q=0;q<70;q++){
+    // debug print to check action
+    maze_reset();
 
-
-        int action;
-
-        //debug exploitation
-        action = bestActionFunction(state_row,state_col,quality);
-
-        // Define 2 variables as placeholders for the inital coordinates
-        int state_row_old = state_row;
-        int state_col_old = state_col;
-            
-        //print out quality values
-        for(int k=0;k<4;k++){
-            printf("Quality value for action %d: %.8f\n",k,quality[state_row][state_col][k]);
-        }
-
-        printf("The best action is %d\n",action);
-
-        // Update state
-        state_row = rowStateUpdater(state_row,action,1);
-        state_col = colStateUpdater(state_col,action,1);
-        printf("(%d,%d) -> (%d,%d)\n",state_row_old,state_col_old,state_row,state_col);
-
-        // Update quality value and score
-        quality[state_row_old][state_col_old][action] = quality[state_row_old][state_col_old][action] + alpha * (rewardFunction(maze[state_row][state_col]) + gamma * maxQuality(state_row,state_col,quality) - quality[state_row_old][state_col_old][action]);
-        
-        switch(maze[state_row][state_col]){
-
-            case 'g':
-                //printf("Goal!\n");
-                break;
-                
-            // If it encounters a wall
-            case '+':
-                //printf("Wall!\n");
-
-                // Revert to original position
-                state_row = rowStateUpdater(state_row,action,-1);
-                state_col = colStateUpdater(state_col,action,-1);
-                break;
-
-            case '.':
-                //printf("Visited\n");
-                break;
-                
-            // If it encounters a valid space (blank space)
-            default:
-                //printf("Valid space\n");
-                break;
-
-        } // end of switch
-
-
-        // indicate visited
-        maze[state_row_old][state_col_old] = '.';
-
-        if(maze[state_row][state_col]=='g'){
-            printf("Reached goal in %d steps!\n",q);
-            //indicate current location
-            maze[state_row][state_col] = 'x';
-            exit(0);
-        }
-
-
-        //indicate current location
-        maze[state_row][state_col] = 'x';
-
-        printf("q = %d\n",q);
-        maze_render();
-        printf("\n");
-
-
-        if(maze[state_row][state_col]=='g'){
-            printf("Completed at loop %d\n",q);
-            printf("Goal!!!!!\n");
-            exit(0);
-        }
-
+    // check quality at 6,3
+    for (int i=0;i<4;i++){
+        printf("quality at (6,3), action %d // quality = %f // boltz = %f\n",i,quality[6][3][i],boltzmannQuality(quality[6][3][i],100));
     }
+    
+
+    // BestAction variable
+    int action = boltzmannAction(state_row,state_col,quality,temperature);
+
+    printf("best action at (%d,%d) is %d\n",state_row,state_col,action);
+
+ 
     
 
 } // end of function
@@ -534,6 +516,9 @@ int main(void){
     maze_make(filename);
     maze_render();
     initaliseVariables();
+
+    // double k = boltzmannQuality(-1.5,100);
+    // printf("value k = %f\n",k);
 
 
     
