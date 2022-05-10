@@ -47,12 +47,12 @@ void print_grid(char** grid) {
 }
 
 bool is_game_over(char** grid) {
-	if ((grid[1][1]!='.' && grid[1][1]==grid[2][2] && grid[1][1]==grid[3][3])
-		|| (grid[1][3]!='.' && grid[1][3]==grid[2][2] && grid[1][3]==grid[3][1])) 
+	if ((grid[0][0]!='.' && grid[0][0]==grid[1][1] && grid[0][0]==grid[2][2])
+		|| (grid[0][2]!='.' && grid[0][2]==grid[1][1] && grid[0][2]==grid[2][0])) 
 		return true;
 	for (int i=0;i<3;i++) {
-		if ((grid[i][1]!='.' && grid[i][1]==grid[i][2] && grid[i][1]==grid[i][3])
-		|| (grid[1][i]!='.' && grid[1][i]==grid[2][i] && grid[1][i]==grid[3][i])) 
+		if ((grid[i][0]!='.' && grid[i][0]==grid[i][1] && grid[i][0]==grid[i][2])
+		|| (grid[0][i]!='.' && grid[0][i]==grid[1][i] && grid[0][i]==grid[2][i])) 
 		return true;
 	}
 	return false;
@@ -60,7 +60,7 @@ bool is_game_over(char** grid) {
 
 //determine if a square is occuped, 0 <= i,j <= 2
 bool is_square_occuped(char** grid, int i, int j) {
-	if (grid[i][j]='.') return false;
+	if (grid[i][j]=='.') return false;
 	return true;
 }
 
@@ -69,7 +69,7 @@ void place_on_grid(char value, char** grid, int i, int j) {
 	grid[i][j]=value;
 }
 
-int main() {
+/*int main() {
 	char** grid = create_grid();
 	print_grid(grid);
-}
+}*/
