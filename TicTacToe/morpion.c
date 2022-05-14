@@ -38,7 +38,7 @@ void reset_grid(char** grid) {
 }
 
 void print_grid(char** grid) {
-	for (int i=0;i<3;i++) {
+	for (int i=2;i>=0;i--) {
 		for (int j=0;j<3;j++) {
 			printf("%c",grid[i][j]);
 		}
