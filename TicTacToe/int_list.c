@@ -19,7 +19,7 @@ void free_int_list(struct int_list* list) {
 void add_head_list(int elt, struct int_list** list) {
 	struct int_list* new_list = malloc(sizeof(struct int_list));
 	if (new_list==NULL) {
-		printf("Mem error\n");
+		printf("Erreur mémoire\n");
 		return;
 	}
 	new_list->val = elt;

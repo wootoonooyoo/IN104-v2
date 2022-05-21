@@ -5,13 +5,13 @@
 char** create_grid() {
 	char** grid = malloc(3*sizeof(char*));
 	if (grid==NULL) {
-		printf("Mem error\n");
+		printf("Erreur mémoire\n");
 		return NULL;
 	}
 	for (int i=0;i<3;i++) {
 		grid[i]=malloc(3*sizeof(char));
 		if (grid[i]==NULL) {
-			printf("Mem error\n");
+			printf("Erreur mémoire\n");
 			free(grid);
 			return NULL;
 		}
