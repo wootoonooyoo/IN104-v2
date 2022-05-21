@@ -1,6 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdbool.h>
+#include "morpion.h"
 
 char** create_grid() {
 	char** grid = malloc(3*sizeof(char*));
@@ -69,7 +67,3 @@ void place_on_grid(char value, char** grid, int i, int j) {
 	grid[i][j]=value;
 }
 
-/*int main() {
-	char** grid = create_grid();
-	print_grid(grid);
-}*/
