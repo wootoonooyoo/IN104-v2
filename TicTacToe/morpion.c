@@ -56,14 +56,7 @@ bool is_game_over(char** grid) {
 	return false;
 }
 
-//determine if a square is occuped, 0 <= i,j <= 2
-bool is_square_occuped(char** grid, int i, int j) {
-	if (grid[i][j]=='.') return false;
-	return true;
-}
-
-//place value in the grid on the square i,j, the square is supposed not occuped
-void place_on_grid(char value, char** grid, int i, int j) {
-	grid[i][j]=value;
+void place_on_grid(char symbol, char** grid, int i, int j) {
+	grid[i][j]=symbol;
 }
 

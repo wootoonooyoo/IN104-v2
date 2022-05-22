@@ -24,7 +24,6 @@ int main() {
 			case 0 :
 				break;
 			case 1 : {
-				time_t begin = time( NULL );
 				bool is_player_1_learning = false;
 				bool is_player_2_learning = false;
 				unsigned int nb_loop;
@@ -43,6 +42,11 @@ int main() {
 					if (player_2!=COMPUTER && player_2 != RANDOM) printf("Erreur type joueur\n");
 					if (player_2==COMPUTER) is_player_2_learning = true;
 				} while (player_2!=COMPUTER && player_2 != RANDOM);
+				if (player_1==RANDOM && player_2==RANDOM) {
+					printf("Pas d'apprentissage effectué\n");
+					break;
+				}
+				time_t begin = time( NULL );
 				learning(alpha, gamma, eps, q_matrix_1, q_matrix_2, nb_loop, player_1, player_2, is_player_1_learning, is_player_2_learning);
 				printf("Temps écoulé pour %d boucles : %lf \n", nb_loop, difftime( time(NULL), begin ));
 				break;
