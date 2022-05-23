@@ -350,12 +350,17 @@ void initaliseVariables(void){
     // Debug purposes
     int rowCounter = 0;
     
-    // Choosing method
-    int method = 0;
-            do {
-                printf("Choose method : \n1. EpsilonGreedy \n2. Boltzmann\n");
-                scanf("%d", &method);
-            } while (method !=1 && method !=2);
+    // Choosing action_method && learning_method
+    int learning_method =0;
+    do {
+        printf("Choose learning method : \n1. Q-Learning \n2. Sarsa\n");
+        scanf("%d", &learning_method);
+    } while (learning_method !=1 && learning_method !=2);
+    int action_method = 0;
+    do {
+        printf("Choose action policy : \n1. EpsilonGreedy \n2. Boltzmann\n");
+        scanf("%d", &action_method);
+    } while (action_method !=1 && action_method !=2);
 
     // [Step 2]
     // Loop
@@ -375,9 +380,9 @@ void initaliseVariables(void){
             // BestAction variable
 
             int action;
-            if (method==1) {
+            if (action_method==1) {
                 action = boltzmannAction(state_row,state_col,quality,temperature);
-            } else if (method==2) {
+            } else if (action_method==2) {
                 action = epsilonGreedyAction(state_row,state_col,quality,epsilon,b);
             }
 
@@ -391,11 +396,13 @@ void initaliseVariables(void){
             state_row = rowStateUpdater(state_row,action,1);
             state_col = colStateUpdater(state_col,action,1);
 
+            if (learning_method==1) {
             // Update quality value and score - Q Learning
             quality[state_row_old][state_col_old][action] = quality[state_row_old][state_col_old][action] + alpha * (rewardFunction(maze[state_row][state_col]) + gamma * maxQuality(state_row,state_col,quality) - quality[state_row_old][state_col_old][action]);
-            
+            } else if (learning_method==2) {
             // Update quality value and score - SARSA
-            // quality[state_row_old][state_col_old][action] = quality[state_row_old][state_col_old][action] + alpha * (rewardFunction(maze[state_row][state_col]) + gamma * quality[state_row][state_col][nextAction(state_row,state_col,quality,temperature)] - quality[state_row_old][state_col_old][action]);
+            quality[state_row_old][state_col_old][action] = quality[state_row_old][state_col_old][action] + alpha * (rewardFunction(maze[state_row][state_col]) + gamma * quality[state_row][state_col][nextAction(state_row,state_col,quality,temperature)] - quality[state_row_old][state_col_old][action]);
+            }
 
             switch(maze[state_row][state_col]){
 
